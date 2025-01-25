@@ -1,14 +1,18 @@
 [tool.poetry]
 name = "example1"
 version = "0.1.0"
-description = ""
+description = "Desktop app to take screenshot and extract text using OCR"
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.13"
-
+python = "^3.9"
+Pillow = "^10.2.0"
+mss = "^9.0.1"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+example1 = "example1.main:main"
