@@ -1,15 +1,9 @@
-import tkinter as tk
-from tkinter import ttk
-from PIL import Image, ImageTk
+from PIL import Image
 import mss
 import mss.tools
 from datetime import datetime
 import os
 import logging
-from .ui import ScreenshotUI
-
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class ScreenshotManager:
     def __init__(self):
@@ -64,12 +58,4 @@ class ScreenshotManager:
             return True
         except Exception as e:
             logging.error(f"Error saving screenshot: {e}", exc_info=True)
-            return False
-
-def main():
-    root = tk.Tk()
-    app = ScreenshotUI(root)
-    root.mainloop()
-
-if __name__ == "__main__":
-    main() 
+            return False 
