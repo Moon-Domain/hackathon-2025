@@ -3,6 +3,7 @@ from tkinter import ttk
 import logging
 import os
 from .screenshot_manager import ScreenshotManager
+from .chat_manager import ChatManager
 
 class ScreenshotUI:
     def __init__(self, root):
@@ -10,8 +11,9 @@ class ScreenshotUI:
         self.root.title("Screenshot OCR")
         logging.info("Initializing ScreenshotUI")
         
-        # Initialize screenshot manager
+        # Initialize managers
         self.screenshot_manager = ScreenshotManager()
+        self.chat_manager = ChatManager()
         
         # UI state variables
         self.photo_image = None
@@ -22,6 +24,13 @@ class ScreenshotUI:
         
         self._setup_window()
         self._create_widgets()
+        
+        # Only show API key dialog if not properly initialized
+        if not self.chat_manager.is_initialized():
+            logging.warning("Chat manager not initialized from environment, requesting API key")
+            self._request_api_key()
+        else:
+            logging.info("Chat manager successfully initialized from environment")
         
     def _setup_window(self):
         """Setup window properties"""
@@ -45,6 +54,35 @@ class ScreenshotUI:
         self.root.columnconfigure(1, weight=1)  # Chat side gets less space
         self.root.rowconfigure(0, weight=1)
     
+    def _request_api_key(self):
+        """Request Anthropic API key from user"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("API Key Required")
+        dialog.geometry("400x150")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        # Center the dialog
+        dialog.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() - dialog.winfo_width()) // 2
+        y = self.root.winfo_y() + (self.root.winfo_height() - dialog.winfo_height()) // 2
+        dialog.geometry(f"+{x}+{y}")
+        
+        ttk.Label(dialog, 
+                 text="Please enter your Anthropic API key\n(or add it to .env file as ANTHROPIC_API_KEY=your_key)",
+                 justify=tk.CENTER).pack(pady=10)
+        
+        api_key = tk.StringVar()
+        entry = ttk.Entry(dialog, textvariable=api_key, width=40, show="*")
+        entry.pack(pady=10)
+        
+        def submit():
+            if api_key.get().strip():
+                self.chat_manager.initialize(api_key.get().strip())
+                dialog.destroy()
+        
+        ttk.Button(dialog, text="Submit", command=submit).pack(pady=10)
+    
     def _create_widgets(self):
         """Create and setup all UI widgets"""
         # Left frame for screenshot
@@ -56,6 +94,7 @@ class ScreenshotUI:
         self.right_frame = ttk.Frame(self.root, padding="20")
         self.right_frame.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N, tk.S))
         self.right_frame.columnconfigure(0, weight=1)
+        self.right_frame.rowconfigure(1, weight=1)  # Make chat area expandable
         
         # Screenshot section
         self.screenshot_btn = ttk.Button(self.left_frame, text="Take Screenshot", command=self.take_screenshot)
@@ -77,22 +116,32 @@ class ScreenshotUI:
         chat_label = ttk.Label(self.right_frame, text="Chat")
         chat_label.grid(row=0, column=0, pady=5)
         
-        # Chat display area
-        self.chat_text = tk.Text(self.right_frame, width=30, height=20)
-        self.chat_text.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        # Chat display area with scrollbar
+        chat_frame = ttk.Frame(self.right_frame)
+        chat_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        chat_frame.columnconfigure(0, weight=1)
+        chat_frame.rowconfigure(0, weight=1)
+        
+        self.chat_text = tk.Text(chat_frame, width=30, height=20, wrap=tk.WORD)
+        scrollbar = ttk.Scrollbar(chat_frame, orient="vertical", command=self.chat_text.yview)
+        self.chat_text.configure(yscrollcommand=scrollbar.set)
+        
+        self.chat_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
         
         # Analyze button
-        self.analyze_btn = ttk.Button(self.right_frame, text="Analyze", state='disabled')
+        self.analyze_btn = ttk.Button(self.right_frame, text="Analyze with Claude", 
+                                    command=self.analyze_screenshot, state='disabled')
         self.analyze_btn.grid(row=2, column=0, pady=10)
         
         # Configure grid weights for resizing
-        self.root.columnconfigure(0, weight=2)  # Screenshot side gets more space
-        self.root.columnconfigure(1, weight=1)  # Chat side gets less space
+        self.root.columnconfigure(0, weight=2)
+        self.root.columnconfigure(1, weight=1)
         self.root.rowconfigure(0, weight=1)
         
         # Update preview dimensions
-        self.PREVIEW_WIDTH = 500  # New constant for preview width
-        self.PREVIEW_HEIGHT = 400  # New constant for preview height
+        self.PREVIEW_WIDTH = 500
+        self.PREVIEW_HEIGHT = 400
     
     def take_screenshot(self):
         """Handle screenshot capture process"""
@@ -225,4 +274,29 @@ class ScreenshotUI:
     def save_screenshot(self):
         """Save the current screenshot"""
         if self.current_image:
-            self.screenshot_manager.save_screenshot(self.current_image) 
+            self.screenshot_manager.save_screenshot(self.current_image)
+    
+    def analyze_screenshot(self):
+        """Send screenshot to Claude for analysis"""
+        if not self.current_image:
+            return
+            
+        self.analyze_btn.config(state='disabled', text="Analyzing...")
+        self.chat_text.insert(tk.END, "\n\nAnalyzing screenshot...\n")
+        self.chat_text.see(tk.END)
+        
+        # Run analysis in a separate thread to keep UI responsive
+        def run_analysis():
+            response = self.chat_manager.analyze_image(self.current_image)
+            
+            # Update UI in main thread
+            self.root.after(0, lambda: self._update_chat(response))
+        
+        import threading
+        threading.Thread(target=run_analysis, daemon=True).start()
+    
+    def _update_chat(self, message):
+        """Update chat with new message"""
+        self.chat_text.insert(tk.END, f"\nClaude: {message}\n")
+        self.chat_text.see(tk.END)
+        self.analyze_btn.config(state='normal', text="Analyze with Claude") 
