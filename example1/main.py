@@ -67,6 +67,14 @@ class ScreenshotManager:
             return False
 
 def main():
+    # Initialize X threads for Linux
+    try:
+        if os.name != 'nt':  # Not Windows
+            tk.Tk.tk.call('package', 'require', 'Tk')
+            tk.Tk.tk.call('tk', 'useinputmethods', '1')
+    except Exception as e:
+        logging.warning(f"Failed to initialize X threads: {e}")
+
     root = tk.Tk()
     app = ScreenshotUI(root)
     root.mainloop()
