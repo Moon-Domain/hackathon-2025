@@ -4,9 +4,9 @@
 1. [Install Git](#1-install-git)
 2. [Clone the Repository](#2-clone-the-repository)
 3. [Install Python using mise](#3-install-python-using-mise)
-4. [Install pipx](#1-install-pipx)
-5. [Install Poetry](#2-install-poetry)
-6. [Install Project Dependencies](#5-install-project-dependencies)
+4. [Install pipx](#4-install-pipx)
+5. [Install Poetry](#5-install-poetry)
+6. [Install Project Dependencies](#6-install-project-dependencies)
 7. [Configure API Key](#7-configure-api-key)
 8. [Running the App](#running-the-app)
 
@@ -63,7 +63,8 @@ echo 'eval "$(~/.local/bin/mise activate zsh)"' >> ~/.zshrc
 source ~/.zshrc
 
 # Install Python
-mise use python@latest
+mise install python@3.13.1
+mise use python@3.13.1
 ```
 
 ### macOS
@@ -86,25 +87,20 @@ mise install python@3.13.1
 mise use python@3.13.1
 ```
 
-### 3. Install Poetry
-```bash
-curl -sSL https://install.python-poetry.org | python3 -
-```
-
-## 1. Install pipx
+## 4. Install pipx
 
 ### Windows
 ```bash
 # Install via pip
-py -m pip install --user pipx
-py -m pipx ensurepath
+pip install --user pipx
+pipx ensurepath
 ```
 
 ### macOS
 ```bash
 # Using Homebrew
 brew install pipx
-pipx ensurepath
+
 ```
 
 ### Linux/WSL
@@ -113,22 +109,16 @@ pipx ensurepath
 sudo apt update
 sudo apt install pipx
 pipx ensurepath
-
-# Or using pip on other distros
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
 ```
 
-## 2. Install Poetry
+## 5. Install Poetry
 
 ```bash
 # Install via pipx (recommended)
 pipx install poetry
 ```
 
-
-
-### 5. Install Project Dependencies
+## 6. Install Project Dependencies
 ```bash
 poetry install
 ```
@@ -136,7 +126,7 @@ poetry install
 ## 7. Configure API Key
 ```bash
 # Create .env file in project root
-cp .env.example .env
+touch .env
 
 # Edit .env and add your Anthropic API key
 echo "ANTHROPIC_API_KEY=your-api-key-here" >> .env
@@ -146,6 +136,6 @@ You can get your Anthropic API key from [console.anthropic.com](https://console.
 
 ## Running the App
 ```bash
-poetry run example1
+poetry run <your-actual-command>  # Replace with your project's actual run command
 ```
 
